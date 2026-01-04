@@ -116,6 +116,24 @@ The application implements the OAuth 2.0 Authorization Code Flow with PKCE:
 3. **Token Exchange**: App exchanges the authorization code for access and ID tokens
 4. **UserInfo Request**: App uses the access token to fetch user information from the userinfo endpoint
 
+## Security Considerations
+
+⚠️ **This is a test/demo application and includes security trade-offs for ease of testing:**
+
+1. **Client Secret in Frontend**: The client secret is exposed in the frontend environment variables. In production:
+   - Use a backend proxy to handle token exchange
+   - Use public client flow (without client secret) if supported by your OIDC provider
+   - Never expose client secrets in client-side code
+
+2. **Token Storage**: Tokens are stored in `sessionStorage` which is vulnerable to XSS attacks. In production:
+   - Use secure, httpOnly cookies
+   - Implement proper token storage mechanisms
+   - Consider using a token service/backend
+
+3. **HTTPS Required**: Always use HTTPS in production to protect tokens and sensitive data in transit
+
+This application is designed for **testing and development purposes only**. For production use, implement proper security measures.
+
 ## License
 
 MIT

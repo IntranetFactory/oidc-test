@@ -22,6 +22,16 @@ export interface UserInfo {
   [key: string]: unknown
 }
 
+/**
+ * OIDC Client with PKCE support
+ * 
+ * SECURITY NOTE: This implementation is designed for testing and development.
+ * For production use, consider:
+ * - Using a backend proxy for token exchange (never expose client secrets in frontend)
+ * - Using secure, httpOnly cookies instead of sessionStorage
+ * - Implementing proper CSRF protection
+ * - Using public client flow if your OIDC provider supports it
+ */
 export class OIDCClient {
   private config: OIDCConfig | null = null
   private discoveryUrl: string

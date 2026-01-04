@@ -11,15 +11,10 @@ export const Route = createFileRoute('/')({
 
 function Index() {
   const navigate = useNavigate()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const client = getOIDCClient()
-    setIsAuthenticated(client.isAuthenticated())
-    setLoading(false)
-  }, [])
+  const client = getOIDCClient()
+  const isAuthenticated = client.isAuthenticated()
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -29,23 +24,13 @@ function Index() {
 
   const handleLogin = async () => {
     try {
-      setLoading(true)
       setError(null)
       const client = getOIDCClient()
       const authUrl = await client.getAuthorizationUrl()
       window.location.href = authUrl
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate login')
-      setLoading(false)
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    )
   }
 
   return (
@@ -72,7 +57,6 @@ function Index() {
           <Button 
             onClick={handleLogin} 
             className="w-full"
-            disabled={loading}
           >
             <LogIn className="mr-2 h-4 w-4" />
             Sign in with OIDC
