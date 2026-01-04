@@ -36,7 +36,6 @@ A React application for quickly testing OpenID Connect (OIDC) authentication flo
    ```
    VITE_OIDC_DISCOVERY_URL=https://your-issuer.example.com/.well-known/openid-configuration
    VITE_OIDC_CLIENT_ID=your-client-id
-   VITE_OIDC_CLIENT_SECRET=your-client-secret
    VITE_OIDC_REDIRECT_URI=http://localhost:5173/callback
    ```
 
@@ -44,13 +43,12 @@ A React application for quickly testing OpenID Connect (OIDC) authentication flo
    ```
    VITE_OIDC_DISCOVERY_URL=https://jdnlvjebzatlybaysdcp.supabase.co/auth/v1/.well-known/openid-configuration
    VITE_OIDC_CLIENT_ID=your-supabase-client-id
-   VITE_OIDC_CLIENT_SECRET=your-supabase-client-secret
    VITE_OIDC_REDIRECT_URI=http://localhost:5173/callback
    ```
 
 4. **Configure your OIDC provider**
    
-   Make sure to add `http://localhost:5173/callback` as an allowed redirect URI in your OIDC provider's settings.
+   Configure your OIDC provider to allow **public clients** (no client secret) and enable PKCE. Add `http://localhost:5173/callback` as an allowed redirect URI in your OIDC provider's settings.
 
 ## Running the Application
 
@@ -109,30 +107,34 @@ The built files will be in the `dist` directory.
 
 ## OIDC Flow
 
-The application implements the OAuth 2.0 Authorization Code Flow with PKCE:
+The application implements the OAuth 2.0 Authorization Code Flow with PKCE (Proof Key for Code Exchange):
 
-1. **Authorization Request**: User clicks login, app generates a code verifier and challenge, then redirects to the authorization endpoint
+1. **Authorization Request**: User clicks login, app generates a code verifier and challenge, then redirects to the authorization endpoint with PKCE parameters
 2. **Authorization Response**: User authenticates with the provider and is redirected back with an authorization code
-3. **Token Exchange**: App exchanges the authorization code for access and ID tokens
+3. **Token Exchange**: App exchanges the authorization code + code verifier for access and ID tokens (no client secret needed)
 4. **UserInfo Request**: App uses the access token to fetch user information from the userinfo endpoint
+
+**PKCE (RFC 7636)** eliminates the need for client secrets in public clients like Single Page Applications, making it secure to use without a backend proxy.
 
 ## Security Considerations
 
-⚠️ **This is a test/demo application and includes security trade-offs for ease of testing:**
+This implementation uses industry-standard PKCE for public clients, which is the recommended OAuth 2.0 flow for SPAs.
 
-1. **Client Secret in Frontend**: The client secret is exposed in the frontend environment variables. In production:
-   - Use a backend proxy to handle token exchange
-   - Use public client flow (without client secret) if supported by your OIDC provider
-   - Never expose client secrets in client-side code
+**Current security features:**
+- ✅ PKCE (Proof Key for Code Exchange) - no client secret needed
+- ✅ State parameter for CSRF protection
+- ✅ Code verifier/challenge with SHA-256
 
-2. **Token Storage**: Tokens are stored in `sessionStorage` which is vulnerable to XSS attacks. In production:
+**For production use, additionally consider:**
+
+1. **Token Storage**: Tokens are stored in `sessionStorage` which is vulnerable to XSS attacks. For production:
    - Use secure, httpOnly cookies
    - Implement proper token storage mechanisms
    - Consider using a token service/backend
 
-3. **HTTPS Required**: Always use HTTPS in production to protect tokens and sensitive data in transit
+2. **HTTPS Required**: Always use HTTPS in production to protect tokens and sensitive data in transit
 
-This application is designed for **testing and development purposes only**. For production use, implement proper security measures.
+This application follows OAuth 2.0 security best practices for public clients and is suitable for production use with proper token storage implementation.
 
 ## License
 

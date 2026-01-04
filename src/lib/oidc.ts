@@ -23,26 +23,25 @@ export interface UserInfo {
 }
 
 /**
- * OIDC Client with PKCE support
+ * OIDC Client with PKCE for public clients (SPAs)
  * 
- * SECURITY NOTE: This implementation is designed for testing and development.
- * For production use, consider:
- * - Using a backend proxy for token exchange (never expose client secrets in frontend)
+ * This implementation uses PKCE (Proof Key for Code Exchange) which is the
+ * recommended secure authentication flow for Single Page Applications.
+ * PKCE eliminates the need for client secrets in public clients.
+ * 
+ * SECURITY NOTE: For production use, consider:
  * - Using secure, httpOnly cookies instead of sessionStorage
  * - Implementing proper CSRF protection
- * - Using public client flow if your OIDC provider supports it
  */
 export class OIDCClient {
   private config: OIDCConfig | null = null
   private discoveryUrl: string
   private clientId: string
-  private clientSecret: string
   private redirectUri: string
 
-  constructor(discoveryUrl: string, clientId: string, clientSecret: string, redirectUri: string) {
+  constructor(discoveryUrl: string, clientId: string, redirectUri: string) {
     this.discoveryUrl = discoveryUrl
     this.clientId = clientId
-    this.clientSecret = clientSecret
     this.redirectUri = redirectUri
   }
 
@@ -102,14 +101,10 @@ export class OIDCClient {
       code_verifier: codeVerifier,
     })
 
-    // Add client secret as Basic Auth
-    const credentials = btoa(`${this.clientId}:${this.clientSecret}`)
-
     const response = await fetch(config.token_endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${credentials}`,
       },
       body: params.toString(),
     })
@@ -196,14 +191,13 @@ export function getOIDCClient(): OIDCClient {
   if (!oidcClient) {
     const discoveryUrl = import.meta.env.VITE_OIDC_DISCOVERY_URL
     const clientId = import.meta.env.VITE_OIDC_CLIENT_ID
-    const clientSecret = import.meta.env.VITE_OIDC_CLIENT_SECRET
     const redirectUri = import.meta.env.VITE_OIDC_REDIRECT_URI
 
-    if (!discoveryUrl || !clientId || !clientSecret || !redirectUri) {
+    if (!discoveryUrl || !clientId || !redirectUri) {
       throw new Error('OIDC configuration is incomplete. Please check your .env file.')
     }
 
-    oidcClient = new OIDCClient(discoveryUrl, clientId, clientSecret, redirectUri)
+    oidcClient = new OIDCClient(discoveryUrl, clientId, redirectUri)
   }
   return oidcClient
 }
