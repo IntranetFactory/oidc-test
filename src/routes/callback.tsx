@@ -27,10 +27,10 @@ function Callback() {
         }
 
         const client = getOIDCClient()
-        await client.handleCallback(code, state)
+        const { returnUrl } = await client.handleCallback(code, state)
 
-        // Navigate to userinfo page
-        navigate({ to: '/userinfo' })
+        // Navigate to the intended page
+        navigate({ to: returnUrl })
       } catch (err) {
         console.error('Callback error:', err)
         setError(err instanceof Error ? err.message : 'Authentication failed')

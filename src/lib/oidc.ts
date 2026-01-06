@@ -56,11 +56,14 @@ export class OIDCClient {
     return this.config as OIDCConfig
   }
 
-  async getAuthorizationUrl(): Promise<string> {
+  async getAuthorizationUrl(returnUrl = '/'): Promise<string> {
     const config = await this.loadConfig()
     const state = this.generateState()
     const codeVerifier = this.generateCodeVerifier()
     const codeChallenge = await this.generateCodeChallenge(codeVerifier)
+
+    // Encode return URL into state parameter
+    const stateWithReturn = btoa(JSON.stringify({ state, returnUrl }))
 
     // Store state and code verifier
     sessionStorage.setItem('oidc_state', state)
@@ -70,8 +73,8 @@ export class OIDCClient {
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
       response_type: 'code',
-      scope: 'openid profile email',
-      state,
+      scope: '',
+      state: stateWithReturn,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
     })
@@ -79,9 +82,20 @@ export class OIDCClient {
     return `${config.authorization_endpoint}?${params.toString()}`
   }
 
-  async handleCallback(code: string, state: string): Promise<TokenResponse> {
+  async handleCallback(code: string, stateParam: string): Promise<{ tokenResponse: TokenResponse; returnUrl: string }> {
     const storedState = sessionStorage.getItem('oidc_state')
     const codeVerifier = sessionStorage.getItem('oidc_code_verifier')
+
+    // Decode state parameter to extract original state and return URL
+    let state: string
+    let returnUrl = '/'
+    try {
+      const decoded = JSON.parse(atob(stateParam))
+      state = decoded.state
+      returnUrl = decoded.returnUrl || '/'
+    } catch {
+      throw new Error('Invalid state parameter format')
+    }
 
     if (state !== storedState) {
       throw new Error('Invalid state parameter')
@@ -126,7 +140,7 @@ export class OIDCClient {
     sessionStorage.removeItem('oidc_state')
     sessionStorage.removeItem('oidc_code_verifier')
 
-    return tokenResponse
+    return { tokenResponse, returnUrl }
   }
 
   async getUserInfo(): Promise<UserInfo> {
