@@ -83,29 +83,43 @@ export class OIDCClient {
   }
 
   async handleCallback(code: string, stateParam: string): Promise<{ tokenResponse: TokenResponse; returnUrl: string }> {
+    console.log('=== OIDC handleCallback called ===')
+    console.log('Code:', code)
+    console.log('State param:', stateParam)
+    
     const storedState = sessionStorage.getItem('oidc_state')
     const codeVerifier = sessionStorage.getItem('oidc_code_verifier')
+
+    console.log('Stored state:', storedState)
+    console.log('Code verifier exists:', !!codeVerifier)
 
     // Decode state parameter to extract original state and return URL
     let state: string
     let returnUrl = '/'
     try {
       const decoded = JSON.parse(atob(stateParam))
+      console.log('Decoded state:', decoded)
       state = decoded.state
       returnUrl = decoded.returnUrl || '/'
-    } catch {
+      console.log('Extracted returnUrl:', returnUrl)
+    } catch (err) {
+      console.error('Failed to decode state parameter:', err)
       throw new Error('Invalid state parameter format')
     }
 
     if (state !== storedState) {
+      console.error('State mismatch!', { state, storedState })
       throw new Error('Invalid state parameter')
     }
 
     if (!codeVerifier) {
+      console.error('Code verifier not found in sessionStorage')
       throw new Error('Code verifier not found')
     }
 
+    console.log('Loading OIDC config...')
     const config = await this.loadConfig()
+    console.log('Token endpoint:', config.token_endpoint)
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -115,6 +129,7 @@ export class OIDCClient {
       code_verifier: codeVerifier,
     })
 
+    console.log('Exchanging code for token...')
     const response = await fetch(config.token_endpoint, {
       method: 'POST',
       headers: {
@@ -123,12 +138,16 @@ export class OIDCClient {
       body: params.toString(),
     })
 
+    console.log('Token response status:', response.status)
+
     if (!response.ok) {
       const errorText = await response.text()
+      console.error('Token exchange failed:', errorText)
       throw new Error(`Token exchange failed: ${response.statusText} - ${errorText}`)
     }
 
     const tokenResponse: TokenResponse = await response.json()
+    console.log('Token exchange successful!')
 
     // Store tokens
     sessionStorage.setItem('access_token', tokenResponse.access_token)
@@ -140,6 +159,7 @@ export class OIDCClient {
     sessionStorage.removeItem('oidc_state')
     sessionStorage.removeItem('oidc_code_verifier')
 
+    console.log('Returning with returnUrl:', returnUrl)
     return { tokenResponse, returnUrl }
   }
 
